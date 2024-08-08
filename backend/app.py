@@ -1,10 +1,14 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Form
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, List, Optional
-from passlib.context import CryptContext
+from typing import Dict, List, Set
+import logging
+import json
 
 app = FastAPI()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # CORS configuration
 app.add_middleware(
@@ -15,70 +19,58 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Password hashing setup
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# In-memory database for users and messages
+# User database
 fake_users_db = {
-    "user1": {"username": "user1", "hashed_password": pwd_context.hash("password1")},
-    "user2": {"username": "user2", "hashed_password": pwd_context.hash("password2")},
-    "user3": {"username": "user3", "hashed_password": pwd_context.hash("password3")}
+    "suba": {"username": "suba", "hashed_password": "password1", "token": "token1"},
+    "sindhu": {"username": "sindhu", "hashed_password": "password2", "token": "token2"},
+    "dhamodhran": {"username": "dhamodhran", "hashed_password": "password3", "token": "token3"},
+    "leesa": {"username": "leesa", "hashed_password": "password4", "token": "token4"},
+    "mohendran": {"username": "mohendran", "hashed_password": "password5", "token": "token5"},
+    "deepan": {"username": "deepan", "hashed_password": "password6", "token": "token6"},
+    "sathish": {"username": "sathish", "hashed_password": "password7", "token": "token7"},
 }
 
-offline_messages: Dict[str, List[str]] = {user: [] for user in fake_users_db}
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
-@app.post("/token")
-async def login(username: str = Form(...), password: str = Form(...)):
-    user = fake_users_db.get(username)
-    if user and pwd_context.verify(password, user['hashed_password']):
-        return {"access_token": username, "token_type": "bearer"}
-    raise HTTPException(status_code=401, detail="Invalid username or password")
-
-@app.post("/signup")
-async def signup(username: str = Form(...), password: str = Form(...)):
-    if username in fake_users_db:
-        raise HTTPException(status_code=400, detail="Username already exists")
-    fake_users_db[username] = {"username": username, "hashed_password": pwd_context.hash(password)}
-    return {"message": "User created successfully"}
-
-class UserUpdateRequest(BaseModel):
-    username: Optional[str] = None
-    password: Optional[str] = None
+# Offline messages and group configuration
+rooms: Dict[str, Set[str]] = {"opcode_convo": {"leesa", "mohendran", "deepan", "sathish"}}
+group_messages: Dict[str, List[Dict[str, str]]] = {"opcode_convo": []}
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections = {}
-        self.user_status = {user: 'offline' for user in fake_users_db}
+        self.active_connections: Dict[str, WebSocket] = {}
+        self.user_status: Dict[str, str] = {user: 'offline' for user in fake_users_db}
 
     async def connect(self, websocket: WebSocket, username: str):
         await websocket.accept()
         self.active_connections[username] = websocket
         self.user_status[username] = 'online'
-        
-        # Send any offline messages to the user
-        if username in offline_messages and offline_messages[username]:
-            for message in offline_messages[username]:
-                await websocket.send_json({"type": "message", "data": message})
-            offline_messages[username] = []  # Clear offline messages after sending
-
+        logging.info(f"User {username} connected.")
         await self.broadcast_status()
 
-    def disconnect(self, username: str):
+    async def disconnect(self, username: str):
         if username in self.active_connections:
             del self.active_connections[username]
-        self.user_status[username] = 'offline'
-        self.broadcast_status()
+            self.user_status[username] = 'offline'
+            logging.info(f"User {username} disconnected.")
+            await self.broadcast_status()
 
-    async def send_message(self, recipient: str, message: str):
+    async def send_message(self, recipient: str, message: Dict[str, str]):
         if recipient in self.active_connections:
             await self.active_connections[recipient].send_json({"type": "message", "data": message})
-        else:
-            # Store the message if the recipient is offline
-            offline_messages.setdefault(recipient, []).append(message)
 
-    async def broadcast_message(self, message: str):
-        for connection in self.active_connections.values():
-            await connection.send_json({"type": "message", "data": message})
+    async def send_room_message(self, room: str, sender: str, message: str):
+        if room in group_messages:
+            message_data = {"sender": sender, "text": message.strip()}
+            group_messages[room].append(message_data)
+            await self.broadcast_room_message(room, message_data)
+
+    async def broadcast_room_message(self, room: str, message: Dict[str, str]):
+        for username in rooms[room]:
+            if username in self.active_connections:
+                await self.active_connections[username].send_json({"type": "message", "data": message})
 
     async def broadcast_status(self):
         status_message = {"type": "status", "data": self.user_status}
@@ -87,27 +79,63 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+class Message(BaseModel):
+    recipient: str = None  # Optional for group messages
+    sender: str
+    text: str
+    room: str  # Keep room for group messages
+    
 @app.websocket("/ws/{username}")
 async def websocket_endpoint(websocket: WebSocket, username: str):
+    logging.info(f"User {username} attempting to connect...")
+
     if username not in fake_users_db:
         await websocket.close(code=4004)  # Forbidden
+        logging.warning(f"Unauthorized connection attempt by {username}")
         return
-    
+
     await manager.connect(websocket, username)
+
     try:
         while True:
             data = await websocket.receive_text()
-            if ":" in data:
-                recipient, message = data.split(":", 1)
-                if recipient in fake_users_db:
-                    message_to_send = f"{username} to {recipient}: {message}"
-                    await manager.send_message(recipient, message_to_send)
-                    await websocket.send_json({"type": "message", "data": message_to_send})  # Send back to sender
+            message_data = json.loads(data)
+            logging.info(f"Received from {username}: {message_data}")
+
+            if message_data['type'] == 'one-to-one':
+                recipient = message_data['recipient']
+                message = message_data['text']
+                await manager.send_message(recipient, {"user": username, "text": message.strip()})
+
+            elif message_data['type'] == 'group':
+                room = message_data['room']
+                message = message_data['text']
+                await manager.send_room_message(room, username, message)
+
             else:
-                message_to_send = f"{username}: {data}"
-                await manager.broadcast_message(message_to_send)
+                logging.warning(f"Unknown message type: {message_data['type']}")
+
     except WebSocketDisconnect:
-        manager.disconnect(username)
+        logging.info(f"{username} disconnected.")
+        await manager.disconnect(username)
+    except Exception as e:
+        logging.error(f"Error receiving message: {e}")
+
+@app.post("/send_message")
+async def send_message(message: Message):
+    if message.room:
+        await manager.send_room_message(message.room, message.sender, message.text)
+    else:
+        await manager.send_message(message.recipient, {"user": message.sender, "text": message.text})
+    return {"status": "message sent"}
+
+@app.post("/login")
+async def login(request: LoginRequest):
+    user = fake_users_db.get(request.username)
+    if user and user["hashed_password"] == request.password:
+        return {"token": user["token"]}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
 
 @app.get("/")
 async def read_root():
@@ -115,32 +143,10 @@ async def read_root():
 
 @app.get("/user_status")
 async def get_user_status():
-    return manager.user_status 
+    return manager.user_status
 
-@app.get("/users", response_model=List[str])
-async def get_users():
-    return list(fake_users_db.keys())
-
-@app.delete("/users/{username}")
-async def delete_user(username: str):
-    if username in fake_users_db:
-        del fake_users_db[username]  # Remove the user from the database
-        if username in manager.active_connections:
-            manager.disconnect(username)  # Disconnect if the user is online
-        return {"message": "User deleted successfully"}
-    else:
-        raise HTTPException(status_code=404, detail="User not found")
-
-@app.put("/users/{username}")
-async def update_user(username: str, user_update: UserUpdateRequest):
-    if username not in fake_users_db:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    if user_update.username:
-        fake_users_db[user_update.username] = fake_users_db.pop(username)
-        username = user_update.username
-
-    if user_update.password:
-        fake_users_db[username]["hashed_password"] = pwd_context.hash(user_update.password)
-
-    return {"message": "User updated successfully"}
+@app.get("/group_messages/{group_name}")
+async def get_group_messages(group_name: str):
+    if group_name in group_messages:
+        return {"messages": group_messages[group_name]}
+    raise HTTPException(status_code=404, detail="Group not found")

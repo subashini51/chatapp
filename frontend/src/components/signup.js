@@ -25,7 +25,7 @@ const Signup = () => {
             if (response.status === 200 && response.data.message === 'User created successfully') {
                 setSuccess('Signup successful!');  // Set success message
                 setTimeout(() => {
-                    navigate('/');  // Redirect to the login page after successful signup
+                    navigate('/');  // Redirect after a short delay
                 }, 1500);
             } else {
                 setError('Sign up failed. Please try again.');

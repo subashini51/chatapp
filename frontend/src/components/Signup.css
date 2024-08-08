@@ -53,14 +53,3 @@
     color: red;
     margin-top: 10px;
 }
-/* Signup.css */
-.success-message {
-    color: green;
-    font-size: 1rem;
-    margin-top: 10px;
-}
-.error-message {
-    color: red;
-    font-size: 1rem;
-    margin-top: 10px;
-}

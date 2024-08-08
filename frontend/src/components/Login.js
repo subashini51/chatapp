@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './Login.css';
+import logo from './images/download.png'; // Import your logo image
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -11,19 +12,13 @@ const Login = () => {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        console.log('Login attempt with:', { username, password }); // Log login attempt
         try {
-            const response = await axios.post('http://127.0.0.1:8000/token', new URLSearchParams({
+            const response = await axios.post('http://127.0.0.1:8000/login', {
                 username,
                 password
-            }), {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
             });
-            console.log('Login response:', response.data); // Log response
-            const { access_token } = response.data;
-            navigate('/chat', { state: { username, token: access_token } });
+            const { token } = response.data;
+            navigate('/chat', { state: { username, token } });
         } catch (error) {
             setError('Login failed. Please check your username and password.');
             console.error('Login error', error);
@@ -31,32 +26,41 @@ const Login = () => {
     };
 
     return (
-        <div className="login-container">
+        <div className="container">
+            <div className="logo-box">
+                <img src={logo} alt="Logo" className="logo" /> {/* Use the imported logo here */}
+            </div>
             <div className="login-box">
                 <h2>Login</h2>
                 <form onSubmit={handleSubmit}>
-                    <div>
-                        <label>Username:</label>
+                    <div className="form-group">
+                        <label htmlFor="username">Username</label>
                         <input
                             type="text"
+                            id="username"
+                            placeholder="Enter your username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
                         />
                     </div>
-                    <div>
-                        <label>Password:</label>
+                    <div className="form-group">
+                        <label htmlFor="password">Password</label>
                         <input
                             type="password"
+                            id="password"
+                            placeholder="Enter your password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
                     </div>
-                    <button type="submit">Login</button>
+                    <button type="submit" className="btn">Login</button>
+                    {error && <p className="error-message">{error}</p>}
                 </form>
-                {error && <p>{error}</p>}
-                <p>Don't have an account? <a href="/signup">Sign up</a></p>
+                <div className="signup-link">
+                    <p>Don't have an account? <Link to="/signup">Signup</Link></p>
+                </div>
             </div>
         </div>
     );

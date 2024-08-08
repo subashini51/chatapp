@@ -1,7 +1,6 @@
-/* src/components/Chat.css */
-
+/* Overall page styles */
 body {
-    background-color: #f0f0f0;
+    background-color: #ffffff; /* Set the overall background to white */
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
@@ -9,14 +8,14 @@ body {
 
 .chat-container {
     display: flex;
-    height: 100vh;
-    background-color: #075e54;
-    color: #fff;
+    height: 100vh; /* Full viewport height */
+    background-color: #ffffff; /* Change chat container background to white */
+    color: #333; /* Dark text */
 }
 
 .sidebar {
     width: 250px;
-    background-color: #128c7e;
+    background-color: #f0f0f0; /* Change sidebar background to a lighter color */
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -25,134 +24,153 @@ body {
 
 .sidebar h3 {
     margin-top: 0;
+    margin-bottom: 10px; /* Space between heading and buttons */
+    color: #333; /* Heading color */
 }
 
-.chat-type-buttons {
-    margin-bottom: 10px;
-}
-
-.chat-type-buttons button {
-    background-color: #25d366;
-    border: none;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 12px;
-    margin-right: 5px;
-}
-
-.chat-type-buttons button:hover {
-    background-color: #128c7e;
-}
-
-.sidebar ul {
+.users-list {
     list-style-type: none;
     padding: 0;
     margin: 0;
+    width: 100%;
+    flex: 1; /* Take available space */
+    overflow-y: auto; /* Allow scrolling */
 }
 
-.sidebar li {
+.user-item {
+    display: flex;
+    align-items: center; /* Align items vertically */
     margin-bottom: 10px;
     width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    background-color: rgba(240, 240, 240, 0.8); /* Semi-transparent background */
+    color: #333; /* Text color for user items */
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Add a line between users */
+    flex-direction: row; /* Align items horizontally */
 }
 
+.user-item:hover {
+    background-color: rgba(37, 211, 102, 0.8); /* Hover effect */
+    color: white;
+}
+
+.profile-pic {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 10px; /* Space between profile picture and username */
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column; /* Stack username and status vertically */
+    margin-left: 10px; /* Space between profile picture and user info */
+}
+
+.username {
+    font-weight: bold;
+}
+
+.status-container {
+    display: flex;
+    align-items: center; /* Align status dot and text */
+    margin-top: 2px; /* Space between username and status */
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.status-dot.online {
+    background-color: green;
+}
+
+.status-dot.offline {
+    background-color: red;
+}
+
+.user-status-text {
+    display: block;
+    font-size: 12px; /* Adjust the font size as needed */
+    color: #333; /* Set text color to dark */
+}
+
+/* Chat content styles */
 .chat-content {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: #fff;
-    padding: 10px;
-    overflow: hidden;
+    background-color: #ffffff; /* Set chat content background to white */
+    color: #333; /* Dark text for chat content */
 }
 
 .chat-header {
-    background-color: #128c7e;
+    background-color: #12a390; /* Set chat header background to white */
     padding: 10px;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    color: #fff;
+    color: #333; /* Header text color */
+    border-bottom: 2px solid #128c7e; /* Add a solid border at the bottom */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Optional: add a subtle shadow for depth */
 }
 
 .chat-body {
     flex: 1;
-    overflow-y: auto;
     padding: 10px;
-    background-color: #e5ddd5;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff; /* Set chat body background to white */
 }
 
-.message {
-    background-color: #dcf8c6;
-    color: #000;
-    max-width: 70%;
+.messages-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.message-item {
+    margin-bottom: 10px;
     padding: 8px;
     border-radius: 10px;
-    margin-bottom: 10px;
-}
-
-.message.sent {
-    align-self: flex-end;
-    background-color: #e2f3f5;
-    color: #000;
-}
-
-.message.received {
+    background-color: #dcf8c6; /* WhatsApp-like message background */
     align-self: flex-start;
-    background-color: #dcf8c6;
-    color: #000;
-}
-
-.message .content {
-    word-wrap: break-word;
 }
 
 .message-input {
     display: flex;
-    align-items: center;
-    background-color: #128c7e;
     padding: 10px;
+    background-color: #ffffff; /* Input background */
+    border-top: 1px solid #ccc; /* Top border */
 }
 
-.message-input input[type="text"] {
+.message-input input {
     flex: 1;
     padding: 8px;
-    border-radius: 20px;
-    border: none;
-    margin-right: 10px;
     font-size: 14px;
+    border-radius: 20px;
+    border: 1px solid #ccc; /* Input border */
 }
 
 .message-input button {
-    padding: 8px 16px;
+    padding: 8px 15px;
+    margin-left: 10px;
+    font-size: 14px;
     border: none;
-    background-color: #25d366;
-    color: #fff;
     border-radius: 20px;
+    background-color: #128c7e; /* WhatsApp-like send button */
+    color: white;
     cursor: pointer;
-    transition: background-color 0.3s ease;
 }
 
 .message-input button:hover {
-    background-color: #128c7e;
-}
-
-.sidebar li.selected {
-    background-color: #25d366;
-    color: white;
-}
-
-.status {
-    margin-left: 5px;
-}
-
-.status.online {
-    color: blue;
-}
-
-.status.offline {
-    color: red;
+    background-color: #075e54; /* Hover effect for send button */
 }
