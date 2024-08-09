@@ -13,7 +13,9 @@ logging.basicConfig(level=logging.INFO)
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000",
+   "https://6ec0-120-56-200-100.ngrok-free.app"],
+
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
